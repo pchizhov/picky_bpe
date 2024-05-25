@@ -3,6 +3,7 @@ import time
 from utils import WHITESPACE, UNK
 from language import Token, Word
 from collections import defaultdict
+from functools import lru_cache
 
 
 import logging
@@ -41,6 +42,7 @@ class BPEModel:
         self.id2int = bpe_model['id2int']
         self.int2id = bpe_model['int2id']
 
+    @lru_cache(maxsize=None)
     def _encode_word(self, word: str) -> list[Token]:
         processed_word = word
         if processed_word in self.str2token:
@@ -65,46 +67,14 @@ class BPEModel:
                 result.append(token)
         return result
 
-    def _encode(self, text: str) -> list[list[Token]]:
-        sentences = [sentence.strip().split(' ') for sentence in text.strip().split('\n')]
-        words = set([WHITESPACE + word for sentence in sentences for word in sentence])
-        encoded_words = {word: self._encode_word(word) for word in words}
-        return [sum([encoded_words[WHITESPACE + word] for word in sentence], start=[]) for sentence in sentences]
-
-    def encode(self, text: str, return_type: str = 'str') -> str:
-        encoded = self._encode(text)
-        if return_type == 'str':
-            return '\n'.join([' '.join([token.str for token in sentence]) for sentence in encoded])
-        elif return_type == 'int':
-            return '\n'.join([' '.join([str(self.id2int[str(token.id)]) for token in sentence]) for sentence in encoded])
-        else:
-            raise NotImplementedError(f'Unknown return type: {return_type}.')
-
-    def encode_file(self, file_path: str, return_type: str = 'str') -> str:
-        start = time.time()
-        with open(file_path, 'r') as file:
-            logger.info(f'Reading file {file_path}...')
-            words = set()
-            for i, line in enumerate(file):
-                words.update([WHITESPACE + word for word in line.strip().split(' ')])
-                if i > 0 and i % 100000 == 0:
-                    logger.info(f'Processed {i} lines.')
-        logger.info(f'Loaded {len(words)} words in {time.time() - start:.2f} seconds.')
-        start_time = time.time()
-        logger.info('Encoding words...')
-        encoded_words = dict()
-        for i, word in enumerate(words):
-            encoded_words[word] = self._encode_word(word)
-            if i > 0 and i % 100000 == 0:
-                logger.info(f'Encoded {i} words.')
-        logger.info(f'Encoded {len(words)} words in {time.time() - start_time:.2f} seconds.')
+    def encode_file(self, input_file: str, output_file: str, return_type: str = 'str') -> None:
         start_time = time.time()
         result = []
-        with open(file_path, 'r') as file:
+        with open(input_file, 'r') as file:
             logger.info('Encoding text...')
             for i, line in enumerate(file):
                 words = line.strip().split(' ')
-                tokens = [token for word in words for token in encoded_words[WHITESPACE + word]]
+                tokens = [token for word in words for token in self._encode_word(WHITESPACE + word)]
                 if return_type == 'str':
                     result.append(' '.join([token.str for token in tokens]))
                 elif return_type == 'int':
@@ -114,7 +84,11 @@ class BPEModel:
                 if i > 0 and i % 100000 == 0:
                     logger.info(f'Encoded {i} lines. Elapsed time: {time.time() - start_time:.2f} seconds.')
         logger.info(f'Encoded text in {time.time() - start_time:.2f} seconds.')
-        return '\n'.join(result)
+        start_time = time.time()
+        with open(output_file, 'w') as file:
+            logger.info('Writing encoded text...')
+            file.write('\n'.join(result))
+        logger.info(f'Wrote encoded text in {time.time() - start_time:.2f} seconds.')
 
     def decode(self, text: str, input_type: str = 'str') -> str:
         sentences = [sentence.strip().split(' ') for sentence in text.strip().split('\n')]
