@@ -110,9 +110,9 @@ class BPEModel:
                 elif return_type == 'int':
                     result.append(' '.join([str(self.id2int[str(token.id)]) for token in tokens]))
                 else:
-                    raise NotImplementedError(f'Unknown return type: {return_type}.')
+                    raise NotImplementedError(f'Unknown return type: {return_type}. Available options: str, int.')
                 if i > 0 and i % 100000 == 0:
-                    logger.info(f'Encoded {i} lines.')
+                    logger.info(f'Encoded {i} lines. Elapsed time: {time.time() - start_time:.2f} seconds.')
         logger.info(f'Encoded text in {time.time() - start_time:.2f} seconds.')
         return '\n'.join(result)
 
@@ -121,7 +121,7 @@ class BPEModel:
         if input_type == 'int':
             sentences = [[self.id2token[self.int2id[token]].str for token in sentence] for sentence in sentences]
         elif input_type != 'str':
-            raise NotImplementedError(f'Unknown input type: {input_type}.')
+            raise NotImplementedError(f'Unknown input type: {input_type}. Available options: str, int.')
         return '\n'.join([''.join(sentence).replace(WHITESPACE, ' ').strip() for sentence in sentences])
 
 
