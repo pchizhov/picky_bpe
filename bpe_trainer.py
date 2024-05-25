@@ -172,37 +172,37 @@ class BPE:
                 return True
         return False
 
-    def _merge_token_in_words(self, token: Token, pair: tuple[Token, Token], pairs: MCounter):
+    def _merge_token_in_words(self, token_to_merge: Token, pair_to_merge: tuple[Token, Token], pairs: MCounter):
         actual_freq = 0
         pairs_for_update = MCounter()
-        for word in pair[0].words & pair[1].words:
-            if pair in word.pairs:
-                word.pairs.pop(pair)
-                actual_freq += word.merge_pair(pair, token)
+        for word in pair_to_merge[0].words & pair_to_merge[1].words:
+            if pair_to_merge in word.pairs:
+                word.pairs.pop(pair_to_merge)
+                actual_freq += word.merge_pair(pair_to_merge, token_to_merge)
                 pairs_for_update.update(
-                    {p: f for p, f in word.pairs.items() if self._validate_pair(p) and token in p}
+                    {p: f for p, f in word.pairs.items() if self._validate_pair(p) and token_to_merge in p}
                 )
-        self._update_pairs_on_merge(token, pair, pairs_for_update, pairs)
-        token.freq += actual_freq
-        if pair[0] is pair[1]:
-            pair[0].freq -= 2 * actual_freq
-            removed = self._remove_if_possible(pair[0], actual_freq, pairs)
+        self._update_pairs_on_merge(token_to_merge, pair_to_merge, pairs_for_update, pairs)
+        token_to_merge.freq += actual_freq
+        if pair_to_merge[0] is pair_to_merge[1]:
+            pair_to_merge[0].freq -= 2 * actual_freq
+            removed = self._remove_if_possible(pair_to_merge[0], actual_freq, pairs)
             if removed:
                 logger.info(
-                    f'Removed token {pair[0].str} with frequency {pair[0].freq} '
-                    f'after merging into {token.str} with frequency {token.freq}.'
+                    f'Removed token {pair_to_merge[0].str} with frequency {pair_to_merge[0].freq} '
+                    f'after merging into {token_to_merge.str} with frequency {token_to_merge.freq}.'
                 )
         else:
-            for t in pair:
-                if not t.present:
-                    raise ValueError(f'Token {t} is not present in the vocabulary.')
-                t.freq -= actual_freq
-                t_freq = t.freq
-                removed = self._remove_if_possible(t, actual_freq, pairs)
+            for token in pair_to_merge:
+                if not token.present:
+                    raise ValueError(f'Token {token} is not present in the vocabulary.')
+                token.freq -= actual_freq
+                token_freq = token.freq
+                removed = self._remove_if_possible(token, actual_freq, pairs)
                 if removed:
                     logger.info(
-                        f'Removed token {t.str} with frequency {t_freq} '
-                        f'after merging into {token.str} with frequency {token.freq}.'
+                        f'Removed token {token.str} with frequency {token_freq} '
+                        f'after merging into {token_to_merge.str} with frequency {token_to_merge.freq}.'
                     )
         return actual_freq
 
