@@ -54,9 +54,7 @@ class BPEModel:
                 token_pairs = [pair for pair in word.pairs if pair in self.merges]
                 if not token_pairs:
                     break
-                print(token_pairs)
                 pair_to_merge = min(token_pairs, key=lambda p: self.merges[p])
-                print(pair_to_merge)
                 word.merge_pair(pair_to_merge, self.id2token[self.merges[pair_to_merge]])
             tokens = word.tokens
         result = []
