@@ -1,5 +1,6 @@
 import json
 import time
+import argparse
 from utils import WHITESPACE, UNK
 from language import Token, Word
 from collections import defaultdict
@@ -101,10 +102,12 @@ class BPEModel:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    bpe_model = BPEModel('model.json')
-    encoding_type = 'str'
-    encoded = bpe_model.encode('housekeeping', return_type=encoding_type)
-    decoded = bpe_model.decode(encoded, input_type=encoding_type)
-    print(encoded)
-    print(decoded)
-    print(bpe_model.encode_file('botchan.txt', return_type=encoding_type))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--bpe_model', type=str, required=True, help='Path to the BPE model.')
+    parser.add_argument('--input_file', type=str, required=True, help='Path to the input file.')
+    parser.add_argument('--output_file', type=str, required=True, help='Path to the output file.')
+    parser.add_argument('--return_type', type=str, default='str', help='Return type: str or int.')
+    args = parser.parse_args()
+
+    model = BPEModel(args.bpe_model)
+    model.encode_file(args.input_file, args.output_file, args.return_type)
