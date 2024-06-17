@@ -213,7 +213,7 @@ class BPE:
             new_token = self.str2token[merged_str]
             if not new_token.present:
                 new_token.revoke()
-                logger.info(f'Revoked previously removed token {new_token.str}.')
+                logger.info(f'Restored previously removed token {new_token.str}.')
         else:
             new_token = Token(self.new_id, merged_str, 0, left=pair[0], right=pair[1])
             self.id2token[new_token.id] = new_token
