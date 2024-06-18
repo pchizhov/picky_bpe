@@ -73,7 +73,7 @@ class BPEModel:
         with open(input_file, 'r') as file:
             logger.info('Encoding text...')
             for i, line in enumerate(file):
-                words = line.strip().split(' ')
+                words = line.strip().split()
                 tokens = [token for word in words for token in self._encode_word(WHITESPACE + word)]
                 if return_type == 'str':
                     result.append(' '.join([token.str for token in tokens]))
