@@ -121,7 +121,12 @@ class BPE:
         return pairs
 
     @staticmethod
-    def _update_pairs_on_merge(new_token: Token, pair: tuple[Token, Token], pairs_for_update: MCounter, pairs: MCounter):
+    def _update_pairs_on_merge(
+        new_token: Token,
+        pair: tuple[Token, Token],
+        pairs_for_update: MCounter,
+        pairs: MCounter
+    ):
         pairs.update(pairs_for_update)
         for p, freq in pairs_for_update.items():
             if new_token not in p:
@@ -212,7 +217,7 @@ class BPE:
         if merged_str in self.str2token:
             new_token = self.str2token[merged_str]
             if not new_token.present:
-                new_token.revoke()
+                new_token.restore()
                 logger.info(f'Restored previously removed token {new_token.str}.')
         else:
             new_token = Token(self.new_id, merged_str, 0, left=pair[0], right=pair[1])

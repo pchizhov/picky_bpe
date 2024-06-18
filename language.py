@@ -42,7 +42,7 @@ class Token:
         self.freq = 0
         self.words = set()
 
-    def revoke(self) -> None:
+    def restore(self) -> None:
         if self.present:
             raise ValueError(f'Cannot revoke already present token {self.str}.')
         self.present = True
