@@ -1,6 +1,7 @@
 import json
 import time
 import argparse
+import numpy as np
 from utils import WHITESPACE, UNK
 from language import Token, Word
 from collections import defaultdict
@@ -17,64 +18,110 @@ class BPEModel:
         self.str2token = dict()
         self.id2int = dict()
         self.int2id = dict()
-        self.merges = dict()
+        self.merge_map = defaultdict(list)
+        self.split_map = defaultdict(list)
+        self.splits = dict()
+        self.events = []
         self._load_bpe_model(bpe_model_path)
+
+    def _token_from_dict(self, token_dict: dict) -> Token:
+        return Token(
+            token_dict['id'],
+            token_dict['str'],
+            token_dict['freq'],
+            token_dict['special'],
+            token_dict['present'],
+            self.id2token[token_dict['left']] if token_dict['left'] is not None else None,
+            self.id2token[token_dict['right']] if token_dict['right'] is not None else None,
+            [self.id2token[i] for i in token_dict['split']] if len(token_dict['split']) > 1 else None
+        )
 
     def _load_bpe_model(self, bpe_model_path: str) -> None:
         with open(bpe_model_path, 'r') as f:
             bpe_model = json.load(f)
         for token_dict in sorted(bpe_model['tokens'], key=lambda x: x['id']):
-            token = Token(
-                token_dict['id'],
-                token_dict['str'],
-                token_dict['freq'],
-                token_dict['special'],
-                token_dict['present'],
-                self.id2token[token_dict['left']] if token_dict['left'] is not None else None,
-                self.id2token[token_dict['right']] if token_dict['right'] is not None else None,
-                [self.id2token[i] for i in token_dict['split']] if len(token_dict['split']) > 1 else None
-            )
+            token = self._token_from_dict(token_dict)
             self.id2token[token.id] = token
             self.str2token[token.str] = token
-            if not token.atomic:
-                self.merges[(token.left, token.right)] = token.id
-            self.str2token = defaultdict(lambda: self.str2token[UNK], self.str2token)
+        self.str2token = defaultdict(lambda: self.str2token[UNK], self.str2token)
+        self.events = bpe_model['merges'] + bpe_model['splits']
+        self.events.sort(key=lambda x: x['id'])
+        for merge in bpe_model['merges']:
+            self.merge_map[(self.str2token[merge['pair'][0]['str']], self.str2token[merge['pair'][1]['str']])].append(merge['id'])
+        for merge in self.merge_map:
+            self.merge_map[merge] = np.array(self.merge_map[merge])
+        for split in bpe_model['splits']:
+            self.split_map[self.str2token[split['token']['str']]].append(split['id'])
+            self.splits[split['id']] = [self.str2token[token['str']] for token in split['split']]
+        for split in self.split_map:
+            self.split_map[split] = np.array(self.split_map[split])
         self.id2int = bpe_model['id2int']
         self.int2id = bpe_model['int2id']
 
     @lru_cache(maxsize=None)
-    def _encode_word(self, word: str) -> list[Token]:
+    def _encode_word_by_event_sequence(self, word: str) -> list[Token]:
         processed_word = word
-        if processed_word in self.str2token:
-            tokens = [self.str2token[processed_word]]
-        else:
-            word = Word(0, processed_word)
-            word.encode(self.str2token)
-            while True:
-                if len(word.tokens) == 1:
-                    break
-                token_pairs = [pair for pair in word.pairs if pair in self.merges]
-                if not token_pairs:
-                    break
-                pair_to_merge = min(token_pairs, key=lambda p: self.merges[p])
-                word.merge_pair(pair_to_merge, self.id2token[self.merges[pair_to_merge]])
-            tokens = word.tokens
-        result = []
-        for token in tokens:
-            if not token.present:
-                result.extend(token.split)
+        if processed_word in self.str2token and self.str2token[processed_word].present:
+            return [self.str2token[processed_word]]
+        word = Word(0, processed_word)
+        word.encode(self.str2token)
+        for event in self.events:
+            pairs = word.pairs
+            if 'pair' in event:
+                pair = (self.str2token[event['pair'][0]['str']], self.str2token[event['pair'][1]['str']])
+                if pair in pairs:
+                    word.merge_pair(pair, self.str2token[event['new_token']['str']])
             else:
-                result.append(token)
-        return result
+                token = self.str2token[event['token']['str']]
+                if token in word.tokens:
+                    word.split_token(token, [self.str2token[t['str']] for t in event['split']])
+        return word.tokens
 
-    def encode_file(self, input_file: str, output_file: str, return_type: str = 'str') -> None:
+    @lru_cache(maxsize=None)
+    def _encode_word_by_events(self, word: str) -> list[Token]:
+        proceesed_word = word
+        if proceesed_word in self.str2token and self.str2token[proceesed_word].present:
+            return [self.str2token[proceesed_word]]
+        previous_event = -1
+        word = Word(0, proceesed_word)
+        word.encode(self.str2token)
+        while True:
+            pairs = [pair for pair in word.pairs if pair in self.merge_map and
+                     np.any(self.merge_map[pair] >= previous_event)]
+            pairs = [(pair, self.merge_map[pair][self.merge_map[pair] >= previous_event][0]) for pair in pairs]
+            removals = [token for token in word.tokens if token in self.split_map and
+                        np.any(self.split_map[token] >= previous_event)]
+            removals = [(token, self.split_map[token][self.split_map[token] >= previous_event][0])
+                        for token in removals]
+            if not pairs and not removals:
+                break
+            pair_to_merge, token_to_remove = None, None
+            merge_event_id, split_event_id = None, None
+            if pairs:
+                pair_to_merge, merge_event_id = min(pairs, key=lambda p: p[1])
+            if removals:
+                token_to_remove, split_event_id = min(removals, key=lambda t: t[1])
+            if pair_to_merge is not None and (token_to_remove is None or merge_event_id < split_event_id):
+                word.merge_pair(pair_to_merge, self.str2token[pair_to_merge[0].str + pair_to_merge[1].str])
+                previous_event = merge_event_id
+            else:
+                word.split_token(token_to_remove, self.splits[split_event_id])
+                previous_event = split_event_id
+        return word.tokens
+
+    def encode_file(
+        self,
+        input_file: str,
+        output_file: str,
+        return_type: str = 'str',
+    ) -> None:
         start_time = time.time()
         result = []
         with open(input_file, 'r') as file:
             logger.info('Encoding text...')
             for i, line in enumerate(file):
                 words = line.strip().split()
-                tokens = [token for word in words for token in self._encode_word(WHITESPACE + word)]
+                tokens = [token for word in words for token in self._encode_word_by_events(WHITESPACE + word)]
                 if return_type == 'str':
                     result.append(' '.join([token.str for token in tokens]))
                 elif return_type == 'int':

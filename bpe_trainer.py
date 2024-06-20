@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from enum import Enum
 from typing import Union
 from pathlib import Path
 from collections import defaultdict
@@ -12,6 +14,11 @@ from language import Token, Word
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class EventType(Enum):
+    MERGE = 0
+    SPLIT = 1
 
 
 class BPE:
@@ -43,6 +50,7 @@ class BPE:
         self.new_id = self.max_special_token_id + 1
         self.coverage = coverage
         self.threshold = threshold
+        self.events = list()
 
     @staticmethod
     def _get_words(file: str) -> list[Word]:
@@ -177,7 +185,12 @@ class BPE:
                 return True
         return False
 
-    def _merge_token_in_words(self, token_to_merge: Token, pair_to_merge: tuple[Token, Token], pairs: MCounter):
+    def _merge_token_in_words(
+            self,
+            token_to_merge: Token,
+            pair_to_merge: tuple[Token, Token],
+            pairs: MCounter,
+    ) -> int:
         actual_freq = 0
         pairs_for_update = MCounter()
         for word in pair_to_merge[0].words & pair_to_merge[1].words:
@@ -197,6 +210,7 @@ class BPE:
                     f'Removed token {pair_to_merge[0].str} with frequency {pair_to_merge[0].freq} '
                     f'after merging into {token_to_merge.str} with frequency {token_to_merge.freq}.'
                 )
+                self.events.append((EventType.SPLIT, pair_to_merge[0], pair_to_merge[0].walk()))
         else:
             for token in pair_to_merge:
                 if not token.present:
@@ -209,6 +223,7 @@ class BPE:
                         f'Removed token {token.str} with frequency {token_freq} '
                         f'after merging into {token_to_merge.str} with frequency {token_to_merge.freq}.'
                     )
+                    self.events.append((EventType.SPLIT, token, token.walk()))
         return actual_freq
 
     def _merge_pair(self, pair: tuple[Token, Token], pairs: MCounter) -> int:
@@ -219,12 +234,16 @@ class BPE:
             if not new_token.present:
                 new_token.restore()
                 logger.info(f'Restored previously removed token {new_token.str}.')
+            else:
+                logger.info(f'Additional merges for {new_token.str}.')
         else:
             new_token = Token(self.new_id, merged_str, 0, left=pair[0], right=pair[1])
             self.id2token[new_token.id] = new_token
             self.str2token[new_token.str] = new_token
             self.new_id += 1
-        return self._merge_token_in_words(new_token, pair, pairs)
+        self.events.append((EventType.MERGE, pair, new_token))
+        actual_freq = self._merge_token_in_words(new_token, pair, pairs)
+        return actual_freq
 
     def _dump(self, file: Union[Path, str]) -> None:
         logger.info(f'Dumping model to {file}...')
@@ -240,6 +259,12 @@ class BPE:
                 'tokens': [token.to_dict() for token in self.id2token.values()],
                 'id2int': id_mapping,
                 'int2id': {v: k for k, v in id_mapping.items()},
+                'merges': [{'id': i, 'pair': [token.to_dict() for token in merge[1]],
+                            'new_token': merge[2].to_dict()}
+                           for i, merge in enumerate(self.events) if merge[0] == EventType.MERGE],
+                'splits': [{'id': i, 'token': merge[1].to_dict(),
+                            'split': [token.to_dict() for token in merge[2]]}
+                           for i, merge in enumerate(self.events) if merge[0] == EventType.SPLIT],
             }, f, indent=4)
 
     def fit(self, input_file: Union[Path, str], model_file: Union[Path, str], logging_step: int = 200) -> None:
