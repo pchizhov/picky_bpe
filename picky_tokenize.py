@@ -86,13 +86,12 @@ class BPEModel:
         word = Word(0, proceesed_word)
         word.encode(self.str2token)
         while True:
-            pairs = [pair for pair in word.pairs if pair in self.merge_map and
-                     np.any(self.merge_map[pair] >= previous_event)]
-            pairs = [(pair, self.merge_map[pair][self.merge_map[pair] >= previous_event][0]) for pair in pairs]
-            removals = [token for token in word.tokens if token in self.split_map and
-                        np.any(self.split_map[token] >= previous_event)]
-            removals = [(token, self.split_map[token][self.split_map[token] >= previous_event][0])
-                        for token in removals]
+            pairs = [pair for pair in word.pairs if pair in self.merge_map]
+            pairs = [(pair, self.merge_map[pair][np.searchsorted(self.merge_map[pair], previous_event)]) for pair in pairs
+                     if np.any(self.merge_map[pair] >= previous_event)]
+            removals = [token for token in word.tokens if token in self.split_map]
+            removals = [(token, self.split_map[token][np.searchsorted(self.split_map[token], previous_event)])
+                        for token in removals if np.any(self.split_map[token] >= previous_event)]
             if not pairs and not removals:
                 break
             pair_to_merge, token_to_remove = None, None
@@ -101,11 +100,13 @@ class BPEModel:
                 pair_to_merge, merge_event_id = min(pairs, key=lambda p: p[1])
             if removals:
                 token_to_remove, split_event_id = min(removals, key=lambda t: t[1])
-            if pair_to_merge is not None and (token_to_remove is None or merge_event_id < split_event_id):
-                word.merge_pair(pair_to_merge, self.str2token[pair_to_merge[0].str + pair_to_merge[1].str])
+            if merge_event_id is None and split_event_id is None:
+                break
+            if token_to_remove is None or (pair_to_merge is not None and merge_event_id < split_event_id):
+                word.merge_pair(pair_to_merge, self.str2token[pair_to_merge[0].str + pair_to_merge[1].str], update_tokens=False)
                 previous_event = merge_event_id
             else:
-                word.split_token(token_to_remove, self.splits[split_event_id])
+                word.split_token(token_to_remove, self.splits[split_event_id], update_tokens=False)
                 previous_event = split_event_id
         return word.tokens
 
