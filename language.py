@@ -88,7 +88,7 @@ class Word:
             for token in self.tokens:
                 token.words.add(self)
 
-    def merge_pair(self, pair: tuple[Token], new_token: Token, update_tokens: bool = True) -> int:
+    def merge_pair(self, pair: tuple[Token, Token], new_token: Token, update_tokens: bool = True) -> int:
         new_tokens = []
         i = 0
         while i < len(self.tokens):
@@ -106,14 +106,12 @@ class Word:
         self._recalculate(update_tokens=update_tokens)
         return new_token_frequency * self.freq
 
-    def split_token(self, token: Token, split: list[Token]):
+    def split_token(self, token: Token, split: list[Token], update_tokens: bool = True):
         new_tokens = []
         for t in self.tokens:
             if t == token:
                 new_tokens.extend(split)
             else:
                 new_tokens.append(t)
-        for token in new_tokens:
-            token.words.add(self)
         self.tokens = new_tokens
-        self._recalculate()
+        self._recalculate(update_tokens=update_tokens)
