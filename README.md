@@ -18,16 +18,16 @@ The complete list of options is:
 
 ```
 Args:
-    --input_file     Path to the training corpus
-    --model_file     Path to save the model
-    --vocab_size     Desired vocabulary size
-    --threshold      Desired IoS threshold
-    --coverage       Relative symbol coverage for the initial vocabulary (default: 0.9999)
-    --pad_id         PAD token id (default: 0)
-    --unk_id         UNK token id (default: 1)
-    --bos_id         BOS token id (default: 2)
-    --eos_id         EOS token id (default: 3)
-    --logging_step   Frequency of merges logging (default: 200)
+  --input_file     Path to the training corpus
+  --model_file     Path to save the model
+  --vocab_size     Desired vocabulary size
+  --threshold      Desired IoS threshold
+  --coverage       Relative symbol coverage for the initial vocabulary (default: 0.9999)
+  --pad_id         PAD token id (default: 0)
+  --unk_id         UNK token id (default: 1)
+  --bos_id         BOS token id (default: 2)
+  --eos_id         EOS token id (default: 3)
+  --logging_step   Frequency of merges logging (default: 200)
 ```
 
 ## Tokenization
@@ -42,8 +42,8 @@ The complete list of options is:
 
 ```
 Args:
-    --model_file    Path to the trained model
-    --input_file    Path to the raw corpus
-    --output_file   Path to save the tokenized corpus
-    --return_type   Whether to output tokens ("str") or ids ("int") (default: "str")
+  --model_file    Path to the trained model
+  --input_file    Path to the raw corpus
+  --output_file   Path to save the tokenized corpus
+  --return_type   Whether to output tokens ("str") or ids ("int") (default: "str")
 ```
