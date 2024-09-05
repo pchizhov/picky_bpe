@@ -1,9 +1,7 @@
 # Picky BPE
 
 This repository contains a prototype code for the paper "BPE Gets Picky: Efficient Vocabulary Refinement
-During Tokenizer Training".
-
-[arxiv](https://arxiv.org)
+During Tokenizer Training". [arxiv](https://arxiv.org)
 
 ## Training
 
@@ -46,4 +44,19 @@ Args:
   --input_file    Path to the raw corpus
   --output_file   Path to save the tokenized corpus
   --return_type   Whether to output tokens ("str") or ids ("int") (default: "str")
+```
+
+## Referencing
+
+To cite PickyBPE:
+
+```
+@misc{chizhov2024picky,
+  author = {Chizhov, Pavel and Arnett, Catherine and Korotkova, Elizaveta and Yamshchikov, Ivan P.},
+  title = {{BPE Gets Picky: Efficient Vocabulary Refinement During Tokenizer Training}},
+  year = {2024},
+  eprint = {arXiv:[ADD]},
+  archivePrefix = {arXiv},
+  note = {Preprint}
+}
 ```
