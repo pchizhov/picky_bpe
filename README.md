@@ -55,8 +55,9 @@ To cite PickyBPE:
   author = {Chizhov, Pavel and Arnett, Catherine and Korotkova, Elizaveta and Yamshchikov, Ivan P.},
   title = {{BPE Gets Picky: Efficient Vocabulary Refinement During Tokenizer Training}},
   year = {2024},
-  eprint = {arXiv:[ADD]},
+  eprint = {arXiv:2409.04599},
   archivePrefix = {arXiv},
+  url = {https://arxiv.org/pdf/2409.04599},
   note = {Preprint}
 }
 ```
