@@ -1,7 +1,9 @@
 # Picky BPE
 
 This repository contains a prototype code for the paper "BPE Gets Picky: Efficient Vocabulary Refinement
-During Tokenizer Training". [arxiv](https://arxiv.org)
+During Tokenizer Training". 
+
+[arxiv](https://arxiv.org/pdf/2409.04599)
 
 ## Training
 
