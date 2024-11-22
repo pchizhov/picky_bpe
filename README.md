@@ -3,7 +3,9 @@
 This repository contains a prototype code for the paper "BPE Gets Picky: Efficient Vocabulary Refinement
 During Tokenizer Training". 
 
-[arxiv](https://arxiv.org/pdf/2409.04599)
+[ACL Anthology](https://aclanthology.org/2024.emnlp-main.925/)
+
+[arxiv](https://arxiv.org/pdf/2409.04599) 
 
 ## Training
 
@@ -53,13 +55,22 @@ Args:
 To cite PickyBPE:
 
 ```
-@misc{chizhov2024picky,
-  author = {Chizhov, Pavel and Arnett, Catherine and Korotkova, Elizaveta and Yamshchikov, Ivan P.},
-  title = {{BPE Gets Picky: Efficient Vocabulary Refinement During Tokenizer Training}},
-  year = {2024},
-  eprint = {arXiv:2409.04599},
-  archivePrefix = {arXiv},
-  url = {https://arxiv.org/pdf/2409.04599},
-  note = {Preprint}
+@inproceedings{chizhov-etal-2024-bpe,
+    title = "{BPE} Gets Picky: Efficient Vocabulary Refinement During Tokenizer Training",
+    author = "Chizhov, Pavel  and
+      Arnett, Catherine  and
+      Korotkova, Elizaveta  and
+      Yamshchikov, Ivan P.",
+    editor = "Al-Onaizan, Yaser  and
+      Bansal, Mohit  and
+      Chen, Yun-Nung",
+    booktitle = "Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing",
+    month = nov,
+    year = "2024",
+    address = "Miami, Florida, USA",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.emnlp-main.925",
+    pages = "16587--16604",
+    abstract = "Language models can greatly benefit from efficient tokenization. However, they still mostly utilize the classical Byte-Pair Encoding (BPE) algorithm, a simple and reliable method. BPE has been shown to cause such issues as under-trained tokens and sub-optimal compression that may affect the downstream performance. We introduce PickyBPE, a modified BPE algorithm that carries out vocabulary refinement during tokenizer training by removing merges that leave intermediate {``}junk{''} tokens. Our method improves vocabulary efficiency, eliminates under-trained tokens, and does not compromise text compression. Our experiments show that this method either improves downstream performance or does not harm it.",
 }
 ```
