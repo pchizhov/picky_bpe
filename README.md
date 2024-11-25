@@ -3,9 +3,7 @@
 This repository contains a prototype code for the paper "BPE Gets Picky: Efficient Vocabulary Refinement
 During Tokenizer Training". 
 
-[ACL Anthology](https://aclanthology.org/2024.emnlp-main.925/)
-
-[arxiv](https://arxiv.org/pdf/2409.04599) 
+[[`ACL Anthology`](https://aclanthology.org/2024.emnlp-main.925)] [[`arXiv`](https://arxiv.org/abs/2409.04599)] [[`BibTeX`](#referencing)] 
 
 ## Training
 
