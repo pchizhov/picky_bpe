@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "picky-bpe"
+version = "0.2.0"
+description = "Byte-level Picky BPE tokenizer (Hugging Face compatible)"
+requires-python = ">=3.9"
+dependencies = ["transformers>=4.40", "heapdict"]
+
+[project.optional-dependencies]
+test = ["pytest", "torch"]
+
+[tool.setuptools]
+packages = ["picky_bpe"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
