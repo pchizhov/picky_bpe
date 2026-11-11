@@ -5,48 +5,60 @@ During Tokenizer Training", which was presented at EMNLP 2024.
 
 [[`ACL Anthology`](https://aclanthology.org/2024.emnlp-main.925)] [[`arXiv`](https://arxiv.org/abs/2409.04599)] [[`BibTeX`](#referencing)] 
 
-## Training
-
-For training you should use `bpe_trainer.py` script. For example, the following command trains a 
-Picky BPE tokenizer with vocabulary size 8192 and IoS threshold of 0.9.
+## Installation
 
 ```
-$ python bpe_trainer.py --input_file train.txt --model_file model.json --vocab_size 8192 --threshold 0.9
+$ pip install -e .          # deps: transformers (incl. tokenizers), heapdict
 ```
 
-The complete list of options is:
+## Usage
 
-```
-Args:
-  --input_file     Path to the training corpus
-  --model_file     Path to save the model
-  --vocab_size     Desired vocabulary size
-  --threshold      Desired IoS threshold
-  --coverage       Relative symbol coverage for the initial vocabulary (default: 0.9999)
-  --pad_id         PAD token id (default: 0)
-  --unk_id         UNK token id (default: 1)
-  --bos_id         BOS token id (default: 2)
-  --eos_id         EOS token id (default: 3)
-  --logging_step   Frequency of merges logging (default: 200)
-```
+`PickyBPETokenizer` is a byte-level (lossless, no `<UNK>` needed) Hugging Face `PreTrainedTokenizer`.
+Training, encoding and persistence all go through this one class:
 
-## Tokenization
+```python
+from picky_bpe import PickyBPETokenizer
 
-To apply the trained Picky BPE model, use the `picky_tokenize.py` script. For example:
+tok = PickyBPETokenizer.train_from_files("train.txt", vocab_size=8192, threshold=0.9)
+# or: PickyBPETokenizer.train_new_from_iterator(texts, vocab_size=8192, threshold=0.9)
+tok.save_pretrained("picky-8k")
 
-```
-$ python picky_tokenize.py --bpe_model model.json --input_file train.txt --output_file train.tok.txt
+tok = PickyBPETokenizer.from_pretrained("picky-8k")   # AutoTokenizer.from_pretrained works after `import picky_bpe`
+tok("Hello world!", return_tensors="pt")
+tok.decode(tok("Hello world!")["input_ids"])
 ```
 
-The complete list of options is:
+Training options (`train_new_from_iterator` / `train_from_files`):
 
 ```
-Args:
-  --model_file    Path to the trained model
-  --input_file    Path to the raw corpus
-  --output_file   Path to save the tokenized corpus
-  --return_type   Whether to output tokens ("str") or ids ("int") (default: "str")
+vocab_size     Total vocabulary size (special tokens + 256 bytes + learned tokens)
+threshold      IoS threshold; a token is removed when IoS > threshold. 1.0 = vanilla BPE (default: 0.9999)
+pattern        Custom pretokenization regex (default: HF ByteLevel, i.e. the GPT-2 pattern)
+<name>_token   Standard HF special tokens (eos_token=..., pad_token=..., additional_special_tokens=[...]);
+               added by HF after the base vocabulary, they count towards vocab_size
+queue          "lazy" (heapq with lazy invalidation, default) or "heapdict"
+min_frequency  Stop when the best pair is rarer than this
+check          Debug: re-count all pairs after every merge and assert they match
 ```
+
+Pre-tokenization (`tokenizers` ByteLevel) and special-token handling are the stock Hugging Face ones.
+Tokenizer options (`__init__` / `from_pretrained(..., **kwargs)`): `add_prefix_space`, `add_bos_token`, `add_eos_token`.
+
+A command-line interface is also available:
+
+```
+$ python -m picky_bpe train --input_file train.txt --output_dir picky-8k --vocab_size 8192 --threshold 0.9
+$ python -m picky_bpe encode --tokenizer picky-8k --input_file train.txt --output_file train.tok.txt --return_type str
+```
+
+Saved files: `vocab.json`, `picky_merges.txt` (ordered merge `M` and removal `S` events; encoding replays them),
+`tokenizer_config.json`, `special_tokens_map.json`.
+
+The tokenizer is implemented in Python (exact Picky semantics: merges and token removals are interleaved, which the
+Rust `tokenizers` BPE cannot express). Encoding caches results per pretoken.
+
+The original character-level prototype used in the paper is kept in `tests/reference/` and serves as the oracle
+for the test-suite (`pytest`).
 
 ## Referencing
 
